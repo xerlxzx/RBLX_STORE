@@ -1,3 +1,12 @@
+
+
+--[[
+THIS CODE IS PLACED AS A CHILD OF THE VEHICLE SEAT IN THE A-CHASSIS
+IT IS USED TO CONTROL THE PLAYER ENTRY AND EXIT OF THE VEHICLE
+
+]]
+
+
 local vehicle_model = script.Parent.Parent.Parent
 local Achassis = vehicle_model.ACHASSIS
 
