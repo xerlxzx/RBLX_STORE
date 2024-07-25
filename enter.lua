@@ -1,12 +1,3 @@
-
-
---[[
-THIS CODE IS PLACED AS A CHILD OF THE VEHICLE SEAT IN THE A-CHASSIS
-IT IS USED TO CONTROL THE PLAYER ENTRY AND EXIT OF THE VEHICLE
-
-]]
-
-
 local vehicle_model = script.Parent.Parent.Parent
 local Achassis = vehicle_model.ACHASSIS
 
@@ -28,66 +19,52 @@ local last_seated_plr_backleft = body.backleft_seat.last_seated_plr
 local last_seated_plr_backright = body.backright_seat.last_seated_plr
 local last_seated_plr_frontleft = body.frontleft_seat.last_seated_plr
 
-local function sit_plr(plrchar,seat)
-	
+local function sit_plr(plrchar, seat, last_seated)
+	local humanoid = plrchar:FindFirstChildWhichIsA("Humanoid")
+	if humanoid then
+		seat:Sit(humanoid)
+		last_seated.Value = plrchar
+	end
 end
 
-driverproxy.Triggered:Connect(function(plr) -- if plr triggers proxy on driver seat, place them into the seat and set the last_seated_plr value to the plr character
+driverproxy.Triggered:Connect(function(plr)
 	if driverseat.Occupant == nil then
-		driverseat:Sit(plr.Character:FindFirstChildWhichIsA("Humanoid"))
-		last_seated_plr.Value = plr.Character
+		sit_plr(plr.Character, driverseat, last_seated_plr)
 	end
 end)
-
---[[
-the code below detects the event triggered when plr left the driverseat,if theres no one in 
-the seat after signal change, use the previously stored plr instance to 
-teleport the plr character instance to some offset along the x axis 
-relative to the orientation of the car
-
-last updated on 25/07/24 by MetaData
-]]
 
 driverseat:GetPropertyChangedSignal("Occupant"):Connect(function()
 	if driverseat.Occupant == nil then
 		local rootpart = last_seated_plr.Value:FindFirstChild("HumanoidRootPart")
 		if rootpart then
-			rootpart.CFrame = driverproxy.Parent.WorldCFrame * CFrame.new(8,0,0)
+			rootpart.CFrame = driverproxy.Parent.WorldCFrame * CFrame.new(8, 0, 0)
 		end
 		print("plr left")
 	end
 end)
 
-local seat_proxies = {frontleftproxy,backleftproxy,backrightproxy}
-local seats = {frontleftseat,backleftseat,backrightseat}
-local seats_values = {last_seated_plr_frontleft,last_seated_plr_backleft,last_seated_plr_backright}
+local seat_proxies = {
+	{ proxy = frontleftproxy, seat = frontleftseat, last_seated = last_seated_plr_frontleft },
+	{ proxy = backleftproxy,  seat = backleftseat,  last_seated = last_seated_plr_backleft },
+	{ proxy = backrightproxy, seat = backrightseat, last_seated = last_seated_plr_backright }
+}
 
-
-
-local function proxy_clicked(plrchar)
-	last_seated_plr_frontleft.Value = plrchar
-	local humanoid = plrchar:FindFirstChildWhichIsA("Humanoid")
-	if humanoid then
-		frontleftseat:Sit(humanoid)
-end
-
-for _, v in ipairs(seat_proxies) do
-	v.Triggered:Connect(function(plr)
-		v.Enabled = false
-		if v.Name == "frontleftproxy" then
-			proxy_clicked(plr.Character)
-		elseif v.Name == "backleftproxy" then
-			proxy_clicked(plr.Character)
-		elseif v.Name == "backrightproxy" then
-			proxy_clicked(plr.Character)
+for _, seat_proxy in ipairs(seat_proxies) do
+	seat_proxy.proxy.Triggered:Connect(function(plr)
+		if seat_proxy.seat.Occupant == nil then
+			sit_plr(plr.Character, seat_proxy.seat, seat_proxy.last_seated)
+			seat_proxy.proxy.Enabled = false
 		end
 	end)
-end
 
-
-for _,v in ipairs(seats) do
-
-	v:GetPropertyChangedSignal("Occupant"):Connect(function()
-		print("test")
+	seat_proxy.seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+		if seat_proxy.seat.Occupant == nil then
+			seat_proxy.proxy.Enabled = true
+			local rootpart = seat_proxy.last_seated.Value:FindFirstChild("HumanoidRootPart")
+			if rootpart then
+				rootpart.CFrame = seat_proxy.proxy.Parent.WorldCFrame * CFrame.new(8, 0, 0)
+			end
+			print("plr left seat: " .. seat_proxy.seat.Name)
+		end
 	end)
 end
